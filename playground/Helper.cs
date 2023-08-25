@@ -7,10 +7,15 @@ namespace playground
         public static Dependency CountColumnDependencies(Dictionary<string, Dictionary<string, string>> columnDetails, Dictionary<string, Dictionary<string, string>> measuresDetails, Model model)
         {
             Dependency columnDependency = new();
+            RelationshipCollection relationshipCollection = model.Relationships;
 
             foreach (string columnName in columnDetails.Keys)
             {
-                columnDependency.columnDependencyCount.Add(columnName, new());
+                columnDependency.columnDependency.Add(columnName, new() {
+                    {"isUsedInMeasure", false},
+                    {"isUsedInRelationship", false}
+                });
+
                 columnDependency.measureDependentOn.Add(columnName, new());
             }
 
@@ -24,21 +29,18 @@ namespace playground
                     {
                         if (keyValuePairInner.Value["expression"].IndexOf("'" + name[0] + "'[" + name[1] + "]", StringComparison.OrdinalIgnoreCase) > -1)
                         {
-                            columnDependency.columnDependencyCount[columnUsed].Add("isUsedInMeasure", true);
+                            columnDependency.columnDependency[columnUsed]["isUsedInMeasure"] = true;
                             columnDependency.measureDependentOn[columnUsed].Add(keyValuePairInner.Key);
                         }
                     }
 
                     //get relationship dependencies
-                    //RelationshipCollection relationshipCollection = model.Relationships;
 
-                    //foreach (SingleColumnRelationship relationship in relationshipCollection.Cast<SingleColumnRelationship>())
-                    //{
-                    //    if ((relationship.FromTable.Name + "." + relationship.FromColumn.Name).Equals(columnUsed))
-                    //        columnDependency.columnDependencyCount[columnUsed].Add("isUsedInRelationship", true);
-                    //    if ((relationship.ToTable.Name + "." + relationship.ToColumn.Name).Equals(columnUsed))
-                    //        columnDependency.columnDependencyCount[columnUsed].Add("isUsedInRelationship", true);
-                    //}
+                    foreach (SingleColumnRelationship relationship in relationshipCollection.Cast<SingleColumnRelationship>())
+                    {
+                        if ((relationship.FromTable.Name + "." + relationship.FromColumn.Name).Equals(columnUsed) || (relationship.ToTable.Name + "." + relationship.ToColumn.Name).Equals(columnUsed))
+                            columnDependency.columnDependency[columnUsed]["isUsedInRelationship"] = true;
+                    }
                 }
             }
             catch (Exception e)
@@ -57,7 +59,7 @@ namespace playground
 
             foreach (string measureName in measuresDetails.Keys)
             {
-                measureDependency.columnDependencyCount.Add(measureName, new());
+                measureDependency.columnDependency.Add(measureName, new());
                 measureDependency.measureDependentOn.Add(measureName, new());
             }
 
@@ -70,7 +72,7 @@ namespace playground
                     {
                         if (keyValuePairInner.Value["expression"].IndexOf("[" + measureUsed + "]", StringComparison.OrdinalIgnoreCase) > -1)
                         {
-                            measureDependency.columnDependencyCount[measureUsed].Add("isUsedByMeasure", true);
+                            measureDependency.columnDependency[measureUsed].Add("isUsedByMeasure", true);
                             measureDependency.measureDependentOn[keyValuePairInner.Key].Add(measureUsed);
                         }
                     }

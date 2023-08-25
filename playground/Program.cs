@@ -3,8 +3,8 @@ using Newtonsoft.Json;
 using playground;
 
 // Constants
-const string host = "localhost:57174";
-const string db = "52816029-b26f-4e48-a5e8-9b97879b773f";
+const string host = "localhost:52361";
+const string db = "e68f275e-45db-4c9e-a990-ab91426902ec";
 const string ConnectionString = "DataSource=" + host;
 
 // Connect to Server
@@ -47,7 +47,7 @@ foreach (var table in model.Tables)
 var columnDependency = Helper.CountColumnDependencies(columnDetails, measuresDetails, model);
 
 // get measure dependencies
-var measureDependency = Helper.CountMeasureDependencies(columnDetails, measuresDetails);
+// var measureDependency = Helper.CountMeasureDependencies(columnDetails, measuresDetails);
 
 
 // outputs
@@ -57,7 +57,7 @@ Console.WriteLine("========column details===========");
 //var columns = JsonConvert.SerializeObject(columnDetails, Formatting.Indented);
 //Console.WriteLine(columns);
 
-var columns1 = JsonConvert.SerializeObject(columnDependency.columnDependencyCount, Formatting.Indented);
+var columns1 = JsonConvert.SerializeObject(columnDependency.columnDependency, Formatting.Indented);
 Console.WriteLine(columns1);
 
 //var columns2 = JsonConvert.SerializeObject(columnDependency.measureDependentOn, Formatting.Indented);
