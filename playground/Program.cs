@@ -3,8 +3,8 @@ using Newtonsoft.Json;
 using playground;
 
 // Constants
-const string host = "localhost:52361";
-const string db = "e68f275e-45db-4c9e-a990-ab91426902ec";
+const string host = "localhost:50385";
+const string db = "ac004234-7bc0-44b5-a344-10505c123bae";
 const string ConnectionString = "DataSource=" + host;
 
 // Connect to Server
@@ -57,7 +57,7 @@ Console.WriteLine("========column details===========");
 //var columns = JsonConvert.SerializeObject(columnDetails, Formatting.Indented);
 //Console.WriteLine(columns);
 
-var columns1 = JsonConvert.SerializeObject(columnDependency.columnDependency, Formatting.Indented);
+var columns1 = JsonConvert.SerializeObject(columnDependency.objectDependency, Formatting.Indented);
 Console.WriteLine(columns1);
 
 //var columns2 = JsonConvert.SerializeObject(columnDependency.measureDependentOn, Formatting.Indented);

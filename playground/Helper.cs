@@ -11,9 +11,11 @@ namespace playground
 
             foreach (string columnName in columnDetails.Keys)
             {
-                columnDependency.columnDependency.Add(columnName, new() {
+                columnDependency.objectDependency.Add(columnName, new() {
                     {"isUsedInMeasure", false},
-                    {"isUsedInRelationship", false}
+                    {"isUsedInRelationship", false},
+                    {"isUsedInHeirarchy", false},
+                    {"isUsedInSortByColumn", false}
                 });
 
                 columnDependency.measureDependentOn.Add(columnName, new());
@@ -24,12 +26,15 @@ namespace playground
                 //Applying the logic
                 foreach (string columnUsed in columnDetails.Keys)
                 {
+
+                    // is used in measure
+
                     string[] name = columnUsed.Split('.');
                     foreach (KeyValuePair<string, Dictionary<string, string>> keyValuePairInner in measuresDetails)
                     {
                         if (keyValuePairInner.Value["expression"].IndexOf("'" + name[0] + "'[" + name[1] + "]", StringComparison.OrdinalIgnoreCase) > -1)
                         {
-                            columnDependency.columnDependency[columnUsed]["isUsedInMeasure"] = true;
+                            columnDependency.objectDependency[columnUsed]["isUsedInMeasure"] = true;
                             columnDependency.measureDependentOn[columnUsed].Add(keyValuePairInner.Key);
                         }
                     }
@@ -39,8 +44,12 @@ namespace playground
                     foreach (SingleColumnRelationship relationship in relationshipCollection.Cast<SingleColumnRelationship>())
                     {
                         if ((relationship.FromTable.Name + "." + relationship.FromColumn.Name).Equals(columnUsed) || (relationship.ToTable.Name + "." + relationship.ToColumn.Name).Equals(columnUsed))
-                            columnDependency.columnDependency[columnUsed]["isUsedInRelationship"] = true;
+                            columnDependency.objectDependency[columnUsed]["isUsedInRelationship"] = true;
                     }
+
+                    // is used in heirarchy
+
+                    // is used in sort by column
                 }
             }
             catch (Exception e)
@@ -59,7 +68,7 @@ namespace playground
 
             foreach (string measureName in measuresDetails.Keys)
             {
-                measureDependency.columnDependency.Add(measureName, new());
+                measureDependency.objectDependency.Add(measureName, new());
                 measureDependency.measureDependentOn.Add(measureName, new());
             }
 
@@ -72,7 +81,7 @@ namespace playground
                     {
                         if (keyValuePairInner.Value["expression"].IndexOf("[" + measureUsed + "]", StringComparison.OrdinalIgnoreCase) > -1)
                         {
-                            measureDependency.columnDependency[measureUsed].Add("isUsedByMeasure", true);
+                            measureDependency.objectDependency[measureUsed].Add("isUsedByMeasure", true);
                             measureDependency.measureDependentOn[keyValuePairInner.Key].Add(measureUsed);
                         }
                     }
