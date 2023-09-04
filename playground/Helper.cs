@@ -4,12 +4,13 @@ namespace playground
 {
     class Helper
     {
+        public static Dictionary<string, Dictionary<string, string>> rolesDetails = new();
+        public static Dictionary<string, Dictionary<string, string>> measuresDetails = new();
+        public static Dictionary<string, string> IRDetails = new();
+
         public static Dependency CountColumnDependencies(Model model)
         {
             Dependency columnDependency = new();
-            Dictionary<string, Dictionary<string, string>> measuresDetails = new();
-            Dictionary<string, Dictionary<string, string>> rolesDetails = new();
-            Dictionary<string, string> IRDetails = new();
 
             //Create Dictionary to hold all Roles and their Expressions
             ModelRoleCollection roleCollection = model.Roles;
@@ -17,7 +18,6 @@ namespace playground
             {
                 foreach (TablePermission tp in role.TablePermissions)
                 {
-
                     rolesDetails.Add(tp.Table.Name + "." + role.Name, new()
                     {
                         { "expression", tp.FilterExpression.Trim() },
@@ -31,27 +31,20 @@ namespace playground
             {
                 if (table.RefreshPolicy != null)
                 {
-
                     BasicRefreshPolicy rp = (BasicRefreshPolicy)table.RefreshPolicy;
-                    IRDetails.Add(rp.Table.Name,
-                        rp.PollingExpression.Trim()
-                    );
-
+                    IRDetails.Add(rp.Table.Name, rp.PollingExpression.Trim());
                 }
+
                 foreach (var measure in table.Measures)
                 {
                     measuresDetails.Add(measure.Name, new()
                     {
-                        { "expression", measure.Expression.Trim() },
-                        { "table", table.Name }
+                        { "table", table.Name },
+                        { "expression", measure.Expression.Trim() }
                     });
                 }
             }
 
-
-            //       try
-            //       {
-            // Adding all the column dependency
             foreach (var table in model.Tables)
             {
                 // Checking and Adding Sort by columns dependency
@@ -110,6 +103,7 @@ namespace playground
                         columnDependency.measureDependentOn[columnUsed].Add(keyValuePairInner.Key);
                     }
                 }
+
                 //Check for columns used in Roles
                 foreach (KeyValuePair<string, Dictionary<string, string>> keyValuePairInner in rolesDetails)
                 {
@@ -121,6 +115,7 @@ namespace playground
 
                     }
                 }
+
                 //Check for columns used in Incremental Refresh
                 foreach (KeyValuePair<string, string> keyValuePairInner in IRDetails)
                 {
@@ -138,7 +133,7 @@ namespace playground
             return columnDependency;
         }
 
-        public static Dependency CountMeasureDependencies(Dictionary<string, Dictionary<string, string>> measuresDetails)
+        public static Dependency CountMeasureDependencies()
         {
             Dependency measureDependency = new();
 
@@ -146,30 +141,25 @@ namespace playground
 
             foreach (string measureName in measuresDetails.Keys)
             {
-                measureDependency.objectDependency.Add(measureName, new());
+                measureDependency.objectDependency.Add(measureName, new() {
+                    { "isUsedByMeasure", false }
+                });
                 measureDependency.measureDependentOn.Add(measureName, new());
             }
 
-            try
+            //Applying the logic
+            foreach (string measureUsed in measuresDetails.Keys)
             {
-                //Applying the logic
-                foreach (string measureUsed in measuresDetails.Keys)
+                foreach (KeyValuePair<string, Dictionary<string, string>> keyValuePairInner in measuresDetails)
                 {
-                    foreach (KeyValuePair<string, Dictionary<string, string>> keyValuePairInner in measuresDetails)
+                    if (keyValuePairInner.Value["expression"].IndexOf("[" + measureUsed + "]", StringComparison.OrdinalIgnoreCase) > -1)
                     {
-                        if (keyValuePairInner.Value["expression"].IndexOf("[" + measureUsed + "]", StringComparison.OrdinalIgnoreCase) > -1)
-                        {
-                            measureDependency.objectDependency[measureUsed].Add("isUsedByMeasure", true);
-                            measureDependency.measureDependentOn[keyValuePairInner.Key].Add(measureUsed);
-                        }
+                        measureDependency.objectDependency[measureUsed]["isUsedByMeasure"] = true;
+                        measureDependency.measureDependentOn[keyValuePairInner.Key].Add(measureUsed);
                     }
                 }
             }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.Message);
-            }
-
+            
             //returning the dictionary Counts
             return measureDependency;
         }

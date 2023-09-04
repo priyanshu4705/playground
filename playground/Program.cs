@@ -2,8 +2,8 @@
 using playground;
 
 // Constants
-const string host = "localhost:51862";
-const string db = "1eee6f89-89b4-470c-812b-6383c2d0c20d";
+const string host = "localhost:52699";
+const string db = "5c69ad18-ab81-4aff-92c3-6e9bb77b60bc";
 const string ConnectionString = "DataSource=" + host;
 
 // Connect to Server
@@ -17,19 +17,25 @@ var model = database.Model;
 var columnDependency = Helper.CountColumnDependencies(model);
 
 // get measure dependencies
-//var measureDependency = Helper.CountMeasureDependencies( measuresDetails );
-
-//var columns1 = JsonConvert.SerializeObject(columnDependency.objectDependency, Formatting.Indented);
-//Console.WriteLine(columns1);
+var measureDependency = Helper.CountMeasureDependencies();
 
 // Unused Columns in model
 
 Console.WriteLine("========Columns Not Used in Model===========");
 foreach (var column in columnDependency.objectDependency.Keys)
 {
-    if (!columnDependency.objectDependency[column]["isUsedInSortByColumn"] && !columnDependency.objectDependency[column]["isUsedInHeirarchy"] && !columnDependency.objectDependency[column]["isUsedInMeasure"] && !columnDependency.objectDependency[column]["isUsedInRelationship"] && !columnDependency.objectDependency[column]["isUsedInRoles"] && !columnDependency.objectDependency[column]["isUsedInIncrementalRefersh"])
+    if (!(columnDependency.objectDependency[column]["isUsedInSortByColumn"] || columnDependency.objectDependency[column]["isUsedInHeirarchy"] || columnDependency.objectDependency[column]["isUsedInMeasure"] || columnDependency.objectDependency[column]["isUsedInRelationship"] || columnDependency.objectDependency[column]["isUsedInRoles"] || columnDependency.objectDependency[column]["isUsedInIncrementalRefersh"]))
     {
         Console.WriteLine(column);
+    }
+}
+
+Console.WriteLine("========Measure Not Used by any other Measure in Model===========");
+foreach (var measure in measureDependency.objectDependency.Keys)
+{
+    if (!measureDependency.objectDependency[measure]["isUsedByMeasure"])
+    {
+        Console.WriteLine(measure);
     }
 }
 
