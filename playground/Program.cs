@@ -1,10 +1,9 @@
 ﻿using Microsoft.AnalysisServices.Tabular;
-using Newtonsoft.Json;
 using playground;
 
 // Constants
-const string host = "localhost:50385";
-const string db = "ac004234-7bc0-44b5-a344-10505c123bae";
+const string host = "localhost:51862";
+const string db = "1eee6f89-89b4-470c-812b-6383c2d0c20d";
 const string ConnectionString = "DataSource=" + host;
 
 // Connect to Server
@@ -14,64 +13,25 @@ server.Connect(ConnectionString);
 var database = server.Databases.GetByName(db);
 var model = database.Model;
 
-// Global variables
-Dictionary<string, Dictionary<string, string>> measuresDetails = new();
-Dictionary<string, Dictionary<string, string>> columnDetails = new();
-
-// Initialize variables
-foreach (var table in model.Tables)
-{
-    foreach (var measure in table.Measures)
-    {
-        measuresDetails.Add(measure.Name, new()
-        {
-            { "expression", measure.Expression.Trim() },
-            { "table", table.Name },
-            { "isHidden", measure.IsHidden.ToString() }
-        });
-    }
-
-    foreach (var column in table.Columns)
-    {
-        string columnName = table.Name + "." + column.Name;
-
-        columnDetails.Add(columnName, new() {
-            { "table", table.Name },
-            { "isHidden", column.IsHidden.ToString() },
-            { "isKey", column.IsKey.ToString() }
-        });
-    }
-}
-
 // get column dependencies
-var columnDependency = Helper.CountColumnDependencies(columnDetails, measuresDetails, model);
+var columnDependency = Helper.CountColumnDependencies(model);
 
 // get measure dependencies
-// var measureDependency = Helper.CountMeasureDependencies(columnDetails, measuresDetails);
+//var measureDependency = Helper.CountMeasureDependencies( measuresDetails );
 
+//var columns1 = JsonConvert.SerializeObject(columnDependency.objectDependency, Formatting.Indented);
+//Console.WriteLine(columns1);
 
-// outputs
+// Unused Columns in model
 
-Console.WriteLine("========column details===========");
-
-//var columns = JsonConvert.SerializeObject(columnDetails, Formatting.Indented);
-//Console.WriteLine(columns);
-
-var columns1 = JsonConvert.SerializeObject(columnDependency.objectDependency, Formatting.Indented);
-Console.WriteLine(columns1);
-
-//var columns2 = JsonConvert.SerializeObject(columnDependency.measureDependentOn, Formatting.Indented);
-//Console.WriteLine(columns2);
-
-//Console.WriteLine("========measure details===========");
-//var measures = JsonConvert.SerializeObject(measuresDetails, Formatting.Indented);
-//Console.WriteLine(measures);
-
-//var measures1 = JsonConvert.SerializeObject(measureDependency.columnDependencyCount, Formatting.Indented);
-//Console.WriteLine(measures1);
-
-//var measures2 = JsonConvert.SerializeObject(measureDependency.measureDependentOn, Formatting.Indented);
-//Console.WriteLine(measures2);
+Console.WriteLine("========Columns Not Used in Model===========");
+foreach (var column in columnDependency.objectDependency.Keys)
+{
+    if (!columnDependency.objectDependency[column]["isUsedInSortByColumn"] && !columnDependency.objectDependency[column]["isUsedInHeirarchy"] && !columnDependency.objectDependency[column]["isUsedInMeasure"] && !columnDependency.objectDependency[column]["isUsedInRelationship"] && !columnDependency.objectDependency[column]["isUsedInRoles"] && !columnDependency.objectDependency[column]["isUsedInIncrementalRefersh"])
+    {
+        Console.WriteLine(column);
+    }
+}
 
 // disconnect server
 server.Disconnect();
