@@ -47,7 +47,6 @@ namespace playground
 
             foreach (var table in model.Tables)
             {
-                // Checking and Adding Sort by columns dependency
                 // Also adding all the column properties with default value is false
                 foreach (var column in table.Columns)
                 {
@@ -65,11 +64,13 @@ namespace playground
                             });
                     }
                     columnDependency.measureDependentOn.Add(columnName, new());
+                }
 
-                    if (column.SortByColumn == null)
-                        continue;
-
-                    columnDependency.objectDependency[table.Name + "." + column.SortByColumn.Name]["isUsedInSortByColumn"] = true;
+                foreach (var column in table.Columns)
+                {
+                    // Checking and Adding Sort by columns dependency
+                    if (column.SortByColumn != null)
+                        columnDependency.objectDependency[table.Name + "." + column.SortByColumn.Name]["isUsedInSortByColumn"] = true;
                 }
 
                 // Checking and Adding Hierarchy columns dependency
