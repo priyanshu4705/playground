@@ -1,4 +1,5 @@
 ﻿using Microsoft.AnalysisServices.Tabular;
+using Newtonsoft.Json;
 
 namespace playground
 {

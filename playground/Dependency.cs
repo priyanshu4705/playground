@@ -7,8 +7,8 @@
 
         public Dependency()
         {
-            objectDependency = new();
-            measureDependentOn = new();
+            objectDependency = new(); // this contains the usage details
+            measureDependentOn = new(); // this contains all the dependent measures
         }
     }
 }
