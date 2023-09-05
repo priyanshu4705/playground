@@ -2,8 +2,8 @@
 using playground;
 
 // Constants
-const string host = "localhost:52699";
-const string db = "5c69ad18-ab81-4aff-92c3-6e9bb77b60bc";
+const string host = "localhost:63486";
+const string db = "11a9c3eb-7576-4c80-9b4e-ce8910b6c3cc";
 const string ConnectionString = "DataSource=" + host;
 
 // Connect to Server
@@ -13,14 +13,17 @@ server.Connect(ConnectionString);
 var database = server.Databases.GetByName(db);
 var model = database.Model;
 
+Helper helper = new(model);
 // get column dependencies
-var columnDependency = Helper.CountColumnDependencies(model);
+var columnDependency = helper.CountColumnDependencies();
 
 // get measure dependencies
-var measureDependency = Helper.CountMeasureDependencies();
+var measureDependency = helper.CountMeasureDependencies();
+
+// get measure with same expression
+var measureWithSameExpression = helper.GetMeasureWithSameExpression();
 
 // Unused Columns in model
-
 Console.WriteLine("========Columns Not Used in Model===========");
 foreach (var column in columnDependency.objectDependency.Keys)
 {
@@ -30,6 +33,7 @@ foreach (var column in columnDependency.objectDependency.Keys)
     }
 }
 
+// Unused measures in model
 Console.WriteLine("========Measure Not Used by any other Measure in Model===========");
 foreach (var measure in measureDependency.objectDependency.Keys)
 {
@@ -37,6 +41,11 @@ foreach (var measure in measureDependency.objectDependency.Keys)
     {
         Console.WriteLine(measure);
     }
+}
+
+foreach (var expression in measureWithSameExpression)
+{
+    Console.WriteLine(expression.Key + ": " + string.Join(',' , expression.Value));
 }
 
 // disconnect server

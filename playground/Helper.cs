@@ -2,39 +2,36 @@
 
 namespace playground
 {
-    class Helper
+    public class Helper
     {
-        public static Dictionary<string, Dictionary<string, string>> rolesDetails = new();
-        public static Dictionary<string, Dictionary<string, string>> measuresDetails = new();
-        public static Dictionary<string, string> IRDetails = new();
+        private readonly Dictionary<string, Dictionary<string, string>> rolesDetails;
+        private readonly Dictionary<string, Dictionary<string, string>> measuresDetails;
+        private readonly Dictionary<string, string> IRDetails;
+        private readonly Dependency measureDependency;
+        private readonly Dependency columnDependency;
+        private readonly TableCollection tables;
+        private readonly List<SingleColumnRelationship> relationships;
 
-        public static Dependency CountColumnDependencies(Model model)
+        public Helper(Model model)
         {
-            Dependency columnDependency = new();
+            measuresDetails = new();
+            rolesDetails = new();
+            IRDetails = new();
+            measureDependency = new();
+            columnDependency = new();
+            tables = model.Tables;
+            relationships = model.Relationships.Cast<SingleColumnRelationship>().ToList();
 
-            //Create Dictionary to hold all Roles and their Expressions
-            ModelRoleCollection roleCollection = model.Roles;
-            foreach (ModelRole role in roleCollection)
+            foreach (var table in tables)
             {
-                foreach (TablePermission tp in role.TablePermissions)
-                {
-                    rolesDetails.Add(tp.Table.Name + "." + role.Name, new()
-                    {
-                        { "expression", tp.FilterExpression.Trim() },
-                        { "table", tp.Table.Name }
-                    });
-                }
-            }
-
-            //Create Dictionary to hold all IR Expressions and Measures Expressions
-            foreach (var table in model.Tables)
-            {
+                // intialize IRDetails
                 if (table.RefreshPolicy != null)
                 {
                     BasicRefreshPolicy rp = (BasicRefreshPolicy)table.RefreshPolicy;
                     IRDetails.Add(rp.Table.Name, rp.PollingExpression.Trim());
                 }
 
+                // intialize measuresDetails
                 foreach (var measure in table.Measures)
                 {
                     measuresDetails.Add(measure.Name, new()
@@ -43,11 +40,8 @@ namespace playground
                         { "expression", measure.Expression.Trim() }
                     });
                 }
-            }
 
-            foreach (var table in model.Tables)
-            {
-                // Also adding all the column properties with default value is false
+                // intialize columnDepencency
                 foreach (var column in table.Columns)
                 {
                     string columnName = table.Name + "." + column.Name;
@@ -63,12 +57,42 @@ namespace playground
                                 {"isUsedInIncrementalRefersh",false }
                             });
                     }
+
                     columnDependency.measureDependentOn.Add(columnName, new());
                 }
+            }
 
+            // initialize roles
+            ModelRoleCollection roleCollection = model.Roles;
+            foreach (ModelRole role in roleCollection)
+            {
+                foreach (TablePermission tp in role.TablePermissions)
+                {
+                    rolesDetails.Add(tp.Table.Name + "." + role.Name, new()
+                    {
+                        { "expression", tp.FilterExpression.Trim() },
+                        { "table", tp.Table.Name }
+                    });
+                }
+            }
+
+            // intialize measureDepencency
+            foreach (string measureName in measuresDetails.Keys)
+            {
+                measureDependency.objectDependency.Add(measureName, new() {
+                    { "isUsedByMeasure", false }
+                });
+                measureDependency.measureDependentOn.Add(measureName, new());
+            }
+        }
+
+        public Dependency CountColumnDependencies()
+        {
+            foreach (var table in tables)
+            {
+                // Checking and Adding Sort by columns dependency
                 foreach (var column in table.Columns)
                 {
-                    // Checking and Adding Sort by columns dependency
                     if (column.SortByColumn != null)
                         columnDependency.objectDependency[table.Name + "." + column.SortByColumn.Name]["isUsedInSortByColumn"] = true;
                 }
@@ -84,7 +108,7 @@ namespace playground
             }
 
             // Checking and Adding Relationship columns dependency
-            foreach (SingleColumnRelationship relationship in model.Relationships.Cast<SingleColumnRelationship>())
+            foreach (var relationship in relationships)
             {
                 columnDependency.objectDependency[relationship.FromTable.Name + "." + relationship.FromColumn.Name]["isUsedInRelationship"] = true;
                 columnDependency.objectDependency[relationship.ToTable.Name + "." + relationship.ToColumn.Name]["isUsedInRelationship"] = true;
@@ -94,6 +118,7 @@ namespace playground
             foreach (string columnUsed in columnDependency.objectDependency.Keys)
             {
                 string[] name = columnUsed.Split('.');
+
                 foreach (KeyValuePair<string, Dictionary<string, string>> keyValuePairInner in measuresDetails)
                 {
                     if (keyValuePairInner.Value["expression"].IndexOf("'" + name[0] + "'[" + name[1] + "]", StringComparison.OrdinalIgnoreCase) > -1
@@ -120,35 +145,18 @@ namespace playground
                 //Check for columns used in Incremental Refresh
                 foreach (KeyValuePair<string, string> keyValuePairInner in IRDetails)
                 {
-                    if ((keyValuePairInner.Value.IndexOf("\"" + name[0] + "\"[" + name[1] + "]", StringComparison.OrdinalIgnoreCase) > -1)
-                        || (keyValuePairInner.Value.IndexOf("" + name[0] + "[" + name[1] + "]", StringComparison.OrdinalIgnoreCase) > -1))
-
+                    if ((keyValuePairInner.Value.IndexOf("\"" + name[0] + "\"[" + name[1] + "]", StringComparison.OrdinalIgnoreCase) > -1) || (keyValuePairInner.Value.IndexOf("" + name[0] + "[" + name[1] + "]", StringComparison.OrdinalIgnoreCase) > -1))
                     {
                         columnDependency.objectDependency[columnUsed]["isUsedInIncrementalRefersh"] = true;
-
                     }
                 }
-
             }
 
             return columnDependency;
         }
 
-        public static Dependency CountMeasureDependencies()
+        public Dependency CountMeasureDependencies()
         {
-            Dependency measureDependency = new();
-
-            //Declaring and initializing variables
-
-            foreach (string measureName in measuresDetails.Keys)
-            {
-                measureDependency.objectDependency.Add(measureName, new() {
-                    { "isUsedByMeasure", false }
-                });
-                measureDependency.measureDependentOn.Add(measureName, new());
-            }
-
-            //Applying the logic
             foreach (string measureUsed in measuresDetails.Keys)
             {
                 foreach (KeyValuePair<string, Dictionary<string, string>> keyValuePairInner in measuresDetails)
@@ -160,9 +168,22 @@ namespace playground
                     }
                 }
             }
-            
-            //returning the dictionary Counts
+
             return measureDependency;
+        }
+
+        public Dictionary<string, HashSet<string>> GetMeasureWithSameExpression() {
+            Dictionary<string, HashSet<string>> measureWithSameExpression = new();
+
+            foreach(var measure in measuresDetails) {
+                if (!measureWithSameExpression.ContainsKey(measure.Value["expression"])) {
+                    measureWithSameExpression.Add(measure.Value["expression"], new() { measure.Key });
+                } else {
+                    measureWithSameExpression[measure.Value["expression"]].Add(measure.Key);
+                }
+            }
+
+            return measureWithSameExpression.Where(x => x.Value.Count > 1).ToDictionary(x => x.Key, x => x.Value);
         }
     }
 }
