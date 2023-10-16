@@ -7,6 +7,8 @@ namespace playground
     {
         private readonly Dictionary<string, Dictionary<string, string>> rolesDetails;
         private readonly Dictionary<string, Dictionary<string, string>> measuresDetails;
+        private readonly Dictionary<string, Dictionary<string, string>> calcGroupDetails;
+
         private readonly Dictionary<string, string> IRDetails;
         private readonly Dependency measureDependency;
         private readonly Dependency columnDependency;
@@ -18,6 +20,7 @@ namespace playground
             measuresDetails = new();
             rolesDetails = new();
             IRDetails = new();
+            calcGroupDetails = new();
             measureDependency = new();
             columnDependency = new();
             tables = model.Tables;
@@ -42,6 +45,19 @@ namespace playground
                     });
                 }
 
+                if (table.CalculationGroup != null)
+                {
+                    foreach (var calcGrp in table.CalculationGroup.CalculationItems)
+                    {
+                        calcGroupDetails.Add(calcGrp.Name, new() {
+                            {"table", table.Name},
+                            {"expression", calcGrp.Expression.Trim()}
+                        });
+
+                        Console.WriteLine(calcGrp.Name + " = " + calcGrp.Expression);
+                    }
+                }
+
                 // intialize columnDepencency
                 foreach (var column in table.Columns)
                 {
@@ -55,7 +71,8 @@ namespace playground
                                 {"isUsedInHeirarchy", false},
                                 {"isUsedInSortByColumn", false},
                                 {"isUsedInRoles",false },
-                                {"isUsedInIncrementalRefersh",false }
+                                {"isUsedInIncrementalRefersh",false },
+                                {"isUsedInCalculationGroup", false}
                             });
                     }
 
@@ -131,6 +148,17 @@ namespace playground
                     }
                 }
 
+                foreach (KeyValuePair<string, Dictionary<string, string>> keyValuePairInner in calcGroupDetails)
+                {
+                    if (keyValuePairInner.Value["expression"].IndexOf("'" + name[0] + "'[" + name[1] + "]", StringComparison.OrdinalIgnoreCase) > -1
+                        || keyValuePairInner.Value["expression"].IndexOf("" + name[0] + "[" + name[1] + "]", StringComparison.OrdinalIgnoreCase) > -1
+                        || (keyValuePairInner.Value["expression"].IndexOf(name[1], StringComparison.OrdinalIgnoreCase) > -1 && keyValuePairInner.Value["table"].Equals(name[0])))
+                    {
+                        columnDependency.objectDependency[columnUsed]["isUsedInCalculationGroup"] = true;
+                        columnDependency.measureDependentOn[columnUsed].Add(keyValuePairInner.Key);
+                    }
+                }
+
                 //Check for columns used in Roles
                 foreach (KeyValuePair<string, Dictionary<string, string>> keyValuePairInner in rolesDetails)
                 {
@@ -173,13 +201,18 @@ namespace playground
             return measureDependency;
         }
 
-        public Dictionary<string, HashSet<string>> GetMeasureWithSameExpression() {
+        public Dictionary<string, HashSet<string>> GetMeasureWithSameExpression()
+        {
             Dictionary<string, HashSet<string>> measureWithSameExpression = new();
 
-            foreach(var measure in measuresDetails) {
-                if (!measureWithSameExpression.ContainsKey(measure.Value["expression"])) {
+            foreach (var measure in measuresDetails)
+            {
+                if (!measureWithSameExpression.ContainsKey(measure.Value["expression"]))
+                {
                     measureWithSameExpression.Add(measure.Value["expression"], new() { measure.Key });
-                } else {
+                }
+                else
+                {
                     measureWithSameExpression[measure.Value["expression"]].Add(measure.Key);
                 }
             }
